@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>家庭积蓄小本</title>
+<meta name="description" content="本地优先的家庭积蓄余额快照小本：数据只存在本机浏览器，支持导出备份。">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f0e6">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#211d18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{
+  --bg:oklch(95.5% 0.012 85);
+  --surface:oklch(98.5% 0.006 85);
+  --surface-2:oklch(95.5% 0.014 85);
+  --ink:oklch(28% 0.02 60);
+  --muted:oklch(48% 0.02 70);
+  --line:oklch(87% 0.02 80);
+  --accent:oklch(52% 0.11 40);
+  --accent-soft:oklch(90% 0.04 45);
+  --num:oklch(42% 0.1 225);
+  --ok:oklch(52% 0.1 150);
+  --ok-soft:oklch(93% 0.045 150);
+  --warn:oklch(55% 0.12 65);
+  --warn-soft:oklch(93% 0.05 75);
+  --danger:oklch(52% 0.18 25);
+  --radius:14px;
+  --shadow:0 1px 2px oklch(0% 0 0/.05),0 6px 18px oklch(0% 0 0/.06);
+  --dur:160ms;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:oklch(20% 0.015 60);
+    --surface:oklch(25% 0.015 60);
+    --surface-2:oklch(29% 0.018 60);
+    --ink:oklch(90% 0.01 85);
+    --muted:oklch(66% 0.015 80);
+    --line:oklch(35% 0.02 70);
+    --accent:oklch(72% 0.1 45);
+    --accent-soft:oklch(32% 0.05 45);
+    --num:oklch(75% 0.09 225);
+    --ok:oklch(72% 0.1 150);
+    --ok-soft:oklch(30% 0.045 150);
+    --warn:oklch(75% 0.11 75);
+    --warn-soft:oklch(30% 0.05 75);
+    --danger:oklch(70% 0.15 25);
+    --shadow:0 1px 2px oklch(0% 0 0/.4),0 6px 18px oklch(0% 0 0/.3);
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  padding-bottom:calc(96px + env(safe-area-inset-bottom));
+}
+button{font:inherit;color:inherit}
+header{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;gap:10px;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background:oklch(from var(--bg) l c h/.86);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.logo{
+  width:26px;height:26px;border-radius:7px;flex:none;
+  background:var(--accent);color:var(--surface);
+  display:grid;place-items:center;font-size:14px;font-weight:700;
+}
+h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.5px}
+h1 small{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px;letter-spacing:0}
+header .grow{flex:1}
+main{max-width:560px;margin:0 auto;padding:14px 16px 0}
+.summary{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:18px 16px 12px;
+}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sum-grid .third{grid-column:1/-1}
+.sum-grid .third.div{border-top:1px dashed var(--line);padding-top:12px;margin-top:2px}
+.sum label{display:block;font-size:12px;color:var(--muted)}
+.sum .v{font-size:22px;font-weight:700;color:var(--num);font-variant-numeric:tabular-nums}
+.sum .v.xl{font-size:32px;line-height:1.25}
+.sum .v.m{font-size:20px}
+.sum .v small{font-size:12px;font-weight:400;color:var(--muted)}
+.sum .v.pos{color:var(--ok)}
+.sum .v.neg{color:var(--danger)}
+.sum-foot{margin-top:12px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted)}
+.bank{margin-top:22px}
+.bank h2{
+  display:flex;align-items:baseline;gap:8px;margin:0 0 10px;
+  font-size:14px;font-weight:700;padding-left:9px;border-left:3px solid var(--accent);
+}
+.bank h2 .bmeta{font-size:12px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--muted)}
+.bank h2 .bmeta.pos{color:var(--ok)}
+.bank h2 .bmeta.neg{color:var(--danger)}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:12px 14px;margin-bottom:10px;cursor:pointer;
+  transition:transform var(--dur) ease;
+}
+.card:hover{transform:translateY(-1px)}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.crow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.crow .amt{margin-left:auto;font-size:22px;font-weight:700;color:var(--num);font-variant-numeric:tabular-nums}
+.crow .amt small{font-size:11px;font-weight:400;color:var(--muted)}
+.chip{font-size:11px;padding:2px 8px;border-radius:99px;line-height:1.5;white-space:nowrap}
+.chip.cdate{background:var(--surface-2);color:var(--muted);font-variant-numeric:tabular-nums}
+.cmeta{font-size:12.5px;color:var(--muted);margin-top:5px;font-variant-numeric:tabular-nums}
+.cmeta b{color:var(--ink);font-weight:600}
+.cnote{
+  margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
+  font-size:12.5px;color:var(--muted);word-break:break-all;
+}
+.empty{
+  margin-top:24px;padding:32px 16px;text-align:center;color:var(--muted);
+  border:1.5px dashed var(--line);border-radius:var(--radius);font-size:14px;
+}
+.bkbar{
+  display:flex;align-items:center;gap:8px;justify-content:space-between;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:8px 8px 8px 14px;margin-bottom:14px;font-size:12.5px;color:var(--muted);
+}
+.bkbar.stale{
+  background:var(--warn-soft);color:var(--warn);
+  border-color:color-mix(in oklab,var(--warn) 35%,var(--line));
+}
+.lock{
+  position:fixed;inset:0;z-index:100;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  padding:24px;text-align:center;
+}
+.lock .logo{width:46px;height:46px;font-size:22px;border-radius:12px}
+.lock input{
+  width:min(240px,78vw);padding:12px;text-align:center;font-size:22px;letter-spacing:8px;
+  border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);
+}
+.lock input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.lock .lerr{color:var(--danger);font-size:13px;min-height:1.2em;margin:0}
+.lock small{color:var(--muted);font-size:12px}
+.fab{
+  position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:20;
+  width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--accent);color:var(--surface);font-size:26px;line-height:1;
+  box-shadow:0 4px 14px oklch(0% 0 0/.22);display:grid;place-items:center;
+  transition:transform var(--dur) ease;
+}
+.fab:hover{transform:scale(1.05)}
+.fab:active{transform:scale(.96)}
+.btn{
+  padding:9px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);cursor:pointer;transition:filter var(--dur) ease;
+}
+.btn:hover{filter:brightness(.97)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
+.btn.danger{color:var(--danger);border-color:color-mix(in oklab,var(--danger) 35%,var(--line))}
+.btn-sm{padding:6px 12px;font-size:13px;border-radius:9px}
+dialog{
+  border:none;border-radius:16px;padding:18px;width:min(92vw,420px);
+  background:var(--surface);color:var(--ink);box-shadow:var(--shadow);
+}
+dialog::backdrop{background:oklch(0% 0 0/.4)}
+dialog h2{margin:0 0 4px;font-size:16px}
+dialog label{display:block;margin:12px 0 0}
+dialog label>span{display:block;font-size:12.5px;color:var(--muted);margin-bottom:4px}
+dialog input,dialog select{
+  width:100%;padding:10px 12px;font-size:16px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface-2);color:var(--ink);
+}
+dialog input:focus,dialog select:focus{outline:2px solid var(--accent);outline-offset:1px}
+dialog small{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);margin:10px 0 0;min-height:1.2em}
+.row{display:flex;align-items:center;gap:8px;margin-top:18px}
+.row .grow{flex:1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo" aria-hidden="true">家</span>
+  <h1>家庭积蓄小本<small>本地版 · 数据不出手机</small></h1>
+  <span class="grow"></span>
+  <button id="btnData" class="btn btn-sm">数据</button>
+</header>
+
+<main>
+  <div id="bkBar" class="bkbar">
+    <span id="bkDate">尚未备份</span>
+    <button id="bkNow" class="btn btn-sm">备份</button>
+  </div>
+  <section class="summary" aria-label="汇总">
+    <div class="sum-grid">
+      <div class="sum third"><label>家庭总积蓄（最新）</label><div class="v xl"><span id="sTotal">0</span><small> 万元</small></div></div>
+      <div class="sum"><label>老公余额</label><div class="v m"><span id="sHus">—</span><small> 万</small></div></div>
+      <div class="sum"><label>我的余额</label><div class="v m"><span id="sWife">—</span><small> 万</small></div></div>
+      <div class="sum third div"><label>本年增量（<span id="sYear">—</span>）</label><div class="v m"><span id="sDelta">—</span></div></div>
+    </div>
+    <p class="sum-foot" id="sFoot"></p>
+  </section>
+
+  <div id="groups"></div>
+
+  <div id="empty" class="empty" hidden>
+    还没有记录。<br>点右下角 ＋ 添加，或在「数据」里导入备份 JSON。
+  </div>
+</main>
+
+<button id="fab" class="fab" aria-label="添加快照">＋</button>
+
+<div id="lock" class="lock" hidden>
+  <span class="logo" aria-hidden="true">家</span>
+  <button id="btnFace" class="btn primary" hidden>扫脸解锁 Face ID</button>
+  <form id="lockForm">
+    <input id="lockPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off">
+    <p class="lerr" id="lockErr"></p>
+    <button class="btn" type="submit">用 PIN 解锁</button>
+  </form>
+  <small>数据保存在本机 · 忘了 PIN 可用备份文件恢复</small>
+</div>
+
+<dialog id="pinDlg" aria-labelledby="pinTitle">
+  <h2 id="pinTitle">设置锁屏 PIN</h2>
+  <label><span>输入 4-6 位数字 PIN</span><input id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+  <label><span>再输一遍确认</span><input id="pinAgain" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+  <p class="hint" id="pinHint">PIN 只在本机存哈希，无法找回；忘了只能用备份文件清空重建。</p>
+  <div class="row">
+    <span class="grow"></span>
+    <button type="button" id="pinCancel" class="btn">取消</button>
+    <button type="button" id="pinSave" class="btn primary">保存</button>
+  </div>
+</dialog>
+
+<dialog id="formDlg" aria-labelledby="formTitle">
+  <form id="f" novalidate>
+    <h2 id="formTitle">添加快照</h2>
+    <label><span>日期 *</span><input id="fDate" type="date"></label>
+    <label><span>老公余额（万元）</span><input id="fHus" type="number" step="0.01" inputmode="decimal" placeholder="留空＝仅记合计"></label>
+    <label><span>我的余额（万元）</span><input id="fWife" type="number" step="0.01" inputmode="decimal" placeholder="留空＝仅记合计"></label>
+    <label><span>合计（万元）*</span><input id="fTotal" type="number" step="0.01" inputmode="decimal">
+      <small>填了两人金额会自动算出合计，仍可手动修改；每条记录是截至当天的余额快照</small>
+    </label>
+    <label><span>备注</span><input id="fNote" maxlength="100" placeholder="选填，如：大额支出 / 互相转账"></label>
+    <div class="row">
+      <button type="button" id="fDelete" class="btn danger" hidden>删除</button>
+      <span class="grow"></span>
+      <button type="button" id="fCancel" class="btn">取消</button>
+      <button type="submit" class="btn primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dataDlg" aria-labelledby="dataTitle">
+  <h2 id="dataTitle">数据管理</h2>
+  <p class="hint">数据仅保存在本机浏览器（localStorage），页面不联网上传任何内容。换手机、清浏览器数据前，先点上面的「备份」。</p>
+  <div class="grid2">
+    <button id="btnExportJson" class="btn">导出 JSON 备份</button>
+    <button id="btnExportCsv" class="btn">导出 CSV</button>
+    <button id="btnImport" class="btn">导入备份…</button>
+    <button id="btnClear" class="btn danger">清空全部数据</button>
+    <button id="btnPin" class="btn">设置锁屏 PIN</button>
+    <button id="btnPinOff" class="btn" hidden>移除 PIN</button>
+    <button id="btnFaceSetup" class="btn" hidden>启用面容解锁（Face ID）</button>
+  </div>
+  <input id="importFile" type="file" accept=".json,application/json" hidden>
+  <div class="row"><span class="grow"></span><button id="dClose" class="btn btn-sm">关闭</button></div>
+</dialog>
+
+<script>
+'use strict';
+/* ==== PURE:BEGIN ==== */
+const DAY=864e5;
+const r2=n=>Math.round(n*100)/100;
+const parseY=s=>Number(String(s).slice(0,4));
+const trimNum=x=>String(r2(Number(x)||0));
+const deltaStr=x=>{const v=r2(Number(x)||0);return (v>=0?'+':'')+String(v)};
+const byDateAsc=(a,b)=>a.date<b.date?-1:a.date>b.date?1:0;
+const sortItems=items=>[...items].sort(byDateAsc);
+function yearGroups(items){
+  const byYear=new Map();
+  for(const it of items){
+    const y=parseY(it.date);
+    if(!byYear.has(y))byYear.set(y,[]);
+    byYear.get(y).push(it);
+  }
+  for(const l of byYear.values())l.sort(byDateAsc);
+  const lastOf=year=>{
+    for(let i=items.length-1;i>=0;i--){
+      if(parseY(items[i].date)===year)return items[i];
+    }
+    return null;
+  };
+  const years=[...byYear.keys()].sort((a,b)=>b-a);
+  return years.map(y=>{
+    const list=byYear.get(y);
+    const prev=lastOf(y-1);
+    const base=prev?prev.total:list[0].total;
+    return {year:y,list,count:list.length,inc:r2(list[list.length-1].total-base),base,first:!prev,firstTotal:list[0].total};
+  });
+}
+function prevYearTotal(items,year){
+  for(let i=items.length-1;i>=0;i--){
+    const y=parseY(items[i].date);
+    if(y===year-1)return items[i].total;
+    if(y<year-1)return null;
+  }
+  return null;
+}
+const deltaPart=g=>`存了 ${deltaStr(g.inc)}万${g.first?`（期初${trimNum(g.firstTotal)}万，含以前积蓄）`:''}`;
+const yearLabel=g=>`${g.year}年 · ${deltaPart(g)}`;
+function normalizeItems(raw){
+  if(!Array.isArray(raw))throw new Error('文件结构不对，需要 {"items":[…]}');
+  const num=(v,k)=>{const n=Number(v);if(!Number.isFinite(n))throw new Error(`${k}不是有效数字`);return n};
+  const opt=v=>(v==null||v==='')?null:num(v,'金额');
+  return raw.map((it,k)=>{
+    if(!it||typeof it.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(it.date))throw new Error(`第 ${k+1} 条缺少合法 date（YYYY-MM-DD）`);
+    if(it.total==null||it.total==='')throw new Error(`第 ${k+1} 条缺少 total`);
+    return {
+      id:String(it.id||('imp-'+Date.now().toString(36)+Math.random().toString(36).slice(2,7))),
+      date:it.date,
+      hus:opt(it.hus),
+      wife:opt(it.wife),
+      total:num(it.total,'total'),
+      note:String(it.note||'')
+    };
+  }).sort(byDateAsc);
+}
+/* ==== PURE:END ==== */
+
+const KEY='family-ledger.v1';
+const KEY_BK='family-ledger.bkAt';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(!raw)return null;
+    const d=JSON.parse(raw);
+    return d&&Array.isArray(d.items)?d:null;
+  }catch{return null}
+}
+let state=load()||{v:1,items:[]};
+state.items=sortItems(state.items);
+function persist(){
+  try{localStorage.setItem(KEY,JSON.stringify(state))}
+  catch{alert('本地保存失败（隐私模式或存储被禁用）。请立即导出备份，并改用 https 托管方式访问。')}
+}
+
+function render(){
+  const items=sortItems(state.items);
+  const wrap=$('#groups');
+  wrap.textContent='';
+  const last=items[items.length-1]||null;
+  const sDelta=$('#sDelta');
+  if(last){
+    const y=parseY(last.date);
+    $('#sYear').textContent=`${y}年`;
+    $('#sTotal').textContent=trimNum(last.total);
+    $('#sHus').textContent=last.hus==null?'—':trimNum(last.hus);
+    $('#sWife').textContent=last.wife==null?'—':trimNum(last.wife);
+    const prev=prevYearTotal(items,y);
+    if(prev!=null){
+      const d=last.total-prev;
+      sDelta.textContent=`${deltaStr(d)} 万`;
+      sDelta.classList.toggle('pos',d>=0);
+      sDelta.classList.toggle('neg',d<0);
+    }else{
+      sDelta.textContent='—';
+      sDelta.classList.remove('pos','neg');
+    }
+    $('#sFoot').textContent=`共 ${items.length} 条快照 · 截至 ${last.date} · 单位：万元`;
+  }else{
+    $('#sYear').textContent='—';
+    $('#sTotal').textContent='0';
+    $('#sHus').textContent='—';
+    $('#sWife').textContent='—';
+    sDelta.textContent='—';
+    sDelta.classList.remove('pos','neg');
+    $('#sFoot').textContent='还没有记录：点右下角 ＋ 添加，或在「数据」里导入备份 JSON。';
+  }
+
+  if(!items.length){$('#empty').hidden=false;return}
+  $('#empty').hidden=true;
+  for(const g of yearGroups(items)){
+    const sec=document.createElement('section');
+    sec.className='bank';
+    sec.innerHTML=`<h2><span>${g.year}年</span><span class="bmeta ${g.inc>=0?'pos':'neg'}">· ${esc(deltaPart(g))}</span></h2>`;
+    for(const it of g.list){
+      const card=document.createElement('article');
+      card.className='card';card.tabIndex=0;card.dataset.id=it.id;
+      card.innerHTML=`
+        <div class="crow">
+          <span class="chip cdate">${esc(it.date)}</span>
+          <span class="amt">${trimNum(it.total)}<small> 万</small></span>
+        </div>
+        <div class="cmeta">老公 <b>${it.hus==null?'—':trimNum(it.hus)}</b> 万 · 我 <b>${it.wife==null?'—':trimNum(it.wife)}</b> 万</div>
+        ${it.note?`<div class="cnote">${esc(it.note)}</div>`:''}`;
+      sec.appendChild(card);
+    }
+    wrap.appendChild(sec);
+  }
+}
+
+let editing=null;
+function autoTotal(){
+  const h=$('#fHus').value,w=$('#fWife').value;
+  if(h!==''&&w!==''){
+    const hv=Number(h),wv=Number(w);
+    if(Number.isFinite(hv)&&Number.isFinite(wv))$('#fTotal').value=r2(hv+wv);
+  }
+}
+function openForm(id){
+  editing=id||null;
+  const it=id?state.items.find(i=>i.id===id):null;
+  $('#formTitle').textContent=it?'编辑快照':'添加快照';
+  $('#fDate').value=it?it.date:todayStr();
+  $('#fHus').value=it&&it.hus!=null?it.hus:'';
+  $('#fWife').value=it&&it.wife!=null?it.wife:'';
+  $('#fTotal').value=it?it.total:'';
+  $('#fNote').value=it?(it.note||''):'';
+  $('#fDelete').hidden=!it;
+  $('#formDlg').showModal();
+}
+['fHus','fWife'].forEach(id=>$('#'+id).addEventListener('input',autoTotal));
+$('#fCancel').onclick=()=>$('#formDlg').close();
+$('#fDelete').onclick=()=>{
+  if(!editing)return;
+  if(!confirm('删除这条快照？'))return;
+  state.items=state.items.filter(i=>i.id!==editing);
+  persist();render();
+  $('#formDlg').close();
+};
+$('#f').addEventListener('submit',e=>{
+  e.preventDefault();
+  const date=$('#fDate').value;
+  const total=Number($('#fTotal').value);
+  const husRaw=$('#fHus').value.trim(),wifeRaw=$('#fWife').value.trim();
+  if(!date){alert('请选择日期');return}
+  if(!Number.isFinite(total)){alert('请填写合计金额（万元）');return}
+  let hus=null,wife=null;
+  if(husRaw!==''){hus=Number(husRaw);if(!Number.isFinite(hus)){alert('老公金额不正确');return}}
+  if(wifeRaw!==''){wife=Number(wifeRaw);if(!Number.isFinite(wife)){alert('我的金额不正确');return}}
+  const note=$('#fNote').value.trim();
+  if(editing){
+    state.items=state.items.map(i=>i.id===editing?{...i,date,hus,wife,total,note}:i);
+  }else{
+    state.items=[...state.items,{id:uid(),date,hus,wife,total,note}];
+  }
+  state.items=sortItems(state.items);
+  persist();render();
+  $('#formDlg').close();
+});
+
+function download(name,mime,text){
+  const blob=new Blob([text],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+function csvCell(v){
+  v=String(v);
+  return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+}
+const lastBkAt=()=>Number(localStorage.getItem(KEY_BK))||0;
+function markBackedUp(){try{localStorage.setItem(KEY_BK,String(Date.now()))}catch{}renderBk()}
+function renderBk(){
+  const t=lastBkAt();
+  const bar=$('#bkBar');
+  if(!t){
+    $('#bkDate').textContent='尚未备份';
+    bar.classList.toggle('stale',state.items.length>0);
+    return;
+  }
+  const d=new Date(t);
+  $('#bkDate').textContent=`上次备份：${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  bar.classList.toggle('stale',state.items.length>0&&(Date.now()-t)>=7*DAY);
+}
+async function exportJson(){
+  const name=`家庭积蓄备份-${todayStr()}.json`;
+  const text=JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2);
+  const file=new File([text],name,{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file],title:'家庭积蓄小本备份'});
+      markBackedUp();return;
+    }catch(e){if(e&&e.name==='AbortError')return}
+  }
+  download(name,'application/json',text);
+  markBackedUp();
+}
+$('#btnExportJson').onclick=exportJson;
+$('#bkNow').onclick=exportJson;
+$('#btnExportCsv').onclick=()=>{
+  const head='日期,老公(万),我(万),合计(万),备注';
+  const rows=sortItems(state.items).map(i=>[
+    i.date,i.hus==null?'':i.hus,i.wife==null?'':i.wife,i.total,i.note||''
+  ].map(csvCell).join(','));
+  download(`家庭积蓄-${todayStr()}.csv`,'text/csv;charset=utf-8','﻿'+head+'\n'+rows.join('\n'));
+};
+$('#btnImport').onclick=()=>$('#importFile').click();
+$('#importFile').addEventListener('change',async e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  try{
+    const d=JSON.parse(await f.text());
+    const raw=d&&Array.isArray(d.items)?d.items:(Array.isArray(d)?d:null);
+    const norm=normalizeItems(raw);
+    const map=new Map(state.items.map(i=>[i.id,i]));
+    for(const it of norm)map.set(it.id,it);
+    state={v:1,items:sortItems([...map.values()])};
+    persist();render();markBackedUp();
+    $('#dataDlg').close();
+    alert(`已导入 ${norm.length} 条（相同 id 的旧数据被覆盖）`);
+  }catch(err){
+    alert('导入失败：'+err.message);
+  }finally{
+    e.target.value='';
+  }
+});
+$('#btnClear').onclick=()=>{
+  if(confirm(`确定清空全部 ${state.items.length} 条数据？不可撤销，建议先导出备份。`)){
+    state={v:1,items:[]};
+    persist();render();
+    $('#dataDlg').close();
+  }
+};
+$('#btnData').onclick=()=>$('#dataDlg').showModal();
+$('#dClose').onclick=()=>$('#dataDlg').close();
+$('#fab').onclick=()=>openForm();
+$('#groups').addEventListener('click',e=>{
+  const c=e.target.closest('.card');
+  if(c)openForm(c.dataset.id);
+});
+$('#groups').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const c=e.target.closest('.card');
+    if(c)openForm(c.dataset.id);
+  }
+});
+/* ---- 锁屏 PIN（哈希门禁，防随手翻看）+ WebAuthn 面容解锁 ---- */
+const KEY_PIN='family-ledger.pin';
+const KEY_FACE='family-ledger.face';
+const PBKDF2_ITER=120000;
+let hiddenAt=0;
+const getPinRec=()=>localStorage.getItem(KEY_PIN)||'';
+const getFaceRec=()=>{try{return JSON.parse(localStorage.getItem(KEY_FACE)||'null')}catch{return null}};
+/* WebAuthn 仅在 https 安全上下文可用；file:// 与局域网 http 下隐藏所有面容入口 */
+const faceOK=()=>!!(window.isSecureContext&&window.PublicKeyCredential&&location.protocol==='https:');
+async function deriveHash(pin,saltHex){
+  if(!(window.crypto&&crypto.subtle))throw new Error('CryptoUnavailable');
+  const enc=new TextEncoder();
+  const key=await crypto.subtle.importKey('raw',enc.encode(pin),'PBKDF2',false,['deriveBits']);
+  const salt=Uint8Array.from(saltHex.match(/.{2}/g).map(h=>parseInt(h,16)));
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:PBKDF2_ITER},key,256);
+  return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function setPin(pin){
+  const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('');
+  const h=await deriveHash(pin,salt);
+  try{localStorage.setItem(KEY_PIN,salt+':'+h)}catch{}
+  updatePinBtns();
+}
+async function verifyPin(pin){
+  const rec=getPinRec();
+  if(!rec)return true;
+  const [salt,h]=rec.split(':');
+  return (await deriveHash(pin,salt))===h;
+}
+function doLock(){
+  if(!getPinRec())return;
+  document.querySelectorAll('dialog[open]').forEach(d=>d.close());
+  $('#lock').hidden=false;
+  $('#lockPin').value='';$('#lockErr').textContent='';
+  if(getFaceRec())tryUnlockFace();
+}
+async function tryUnlockFace(){
+  if(!faceOK())return;
+  if(await unlockFace())doUnlock();
+}
+async function unlockFace(){
+  const rec=getFaceRec();
+  if(!rec||!faceOK())return false;
+  try{
+    await navigator.credentials.get({publicKey:{
+      challenge:Uint8Array.from(rec.challenge.split(',').map(Number)),
+      rpId:location.hostname,userVerification:'required',timeout:60000,
+      allowCredentials:[{type:'public-key',id:Uint8Array.from(atob(rec.id),c=>c.charCodeAt(0))}]
+    }});
+    return true;
+  }catch(e){return false}
+}
+async function setupFace(){
+  if(!faceOK()){alert('当前环境不支持面容解锁：需要 https 访问且浏览器支持 WebAuthn。');return}
+  try{
+    const challenge=crypto.getRandomValues(new Uint8Array(32));
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge,
+      rp:{id:location.hostname,name:'家庭积蓄小本'},
+      user:{id:new TextEncoder().encode('family-ledger-owner'),name:'family-ledger-owner',displayName:'机主'},
+      pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
+      authenticatorSelection:{authenticatorAttachment:'platform',residentKey:'preferred',userVerification:'required'},
+      timeout:60000
+    }});
+    const idB64=btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
+    localStorage.setItem(KEY_FACE,JSON.stringify({id:idB64,challenge:[...challenge].join(',')}));
+    updateFaceBtns();
+    alert('面容解锁已启用。锁屏时扫脸即可进入，PIN 仍可作备用。');
+  }catch(e){alert('绑定失败：'+(e.message||e))}
+}
+function doUnlock(){$('#lock').hidden=true}
+$('#lockForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const pin=$('#lockPin').value.trim();
+  try{
+    if(await verifyPin(pin))doUnlock();
+    else{$('#lockErr').textContent='PIN 不对';$('#lockPin').value=''}
+  }catch(err){
+    $('#lockErr').textContent='此环境不支持 PIN 加密（需 https 或 localhost 访问）';
+  }
+});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)hiddenAt=Date.now();
+  else if(hiddenAt&&Date.now()-hiddenAt>60000)doLock();
+});
+function updateFaceBtns(){
+  const has=!!getPinRec(),face=!!getFaceRec(),ok=faceOK();
+  $('#btnFaceSetup').hidden=!(has&&ok);
+  $('#btnFaceSetup').textContent=face?'重新绑定面容解锁':'启用面容解锁（Face ID）';
+  $('#btnFace').hidden=!(face&&ok);
+}
+function updatePinBtns(){
+  const has=!!getPinRec();
+  $('#btnPin').textContent=has?'修改 PIN':'设置锁屏 PIN';
+  $('#btnPinOff').hidden=!has;
+  updateFaceBtns();
+}
+$('#btnPin').onclick=()=>{
+  $('#pinTitle').textContent=getPinRec()?'修改 PIN':'设置锁屏 PIN';
+  $('#pinNew').value='';$('#pinAgain').value='';
+  $('#pinHint').textContent='4-6 位数字。PIN 只在本机存哈希，无法找回；忘了只能用备份文件清空重建。';
+  $('#pinDlg').showModal();
+};
+$('#pinCancel').onclick=()=>$('#pinDlg').close();
+$('#pinSave').onclick=async()=>{
+  const p1=$('#pinNew').value.trim(),p2=$('#pinAgain').value.trim();
+  if(!/^\d{4,6}$/.test(p1)){$('#pinHint').textContent='PIN 需为 4-6 位数字';return}
+  if(p1!==p2){$('#pinHint').textContent='两次输入不一致';return}
+  try{await setPin(p1)}catch{$('#pinHint').textContent='当前环境不支持加密（需 https 或 localhost 访问），无法设置 PIN';return}
+  $('#pinDlg').close();
+  alert('PIN 已设置。下次打开、或切后台超过 1 分钟回来时需要输入。');
+};
+$('#btnPinOff').onclick=async()=>{
+  const p=prompt('输入当前 PIN 以移除');
+  if(p==null)return;
+  let ok=false;
+  try{ok=await verifyPin(p.trim())}
+  catch{alert('此环境不支持 PIN 加密（需 https 或 localhost 访问），无法验证');return}
+  if(ok){
+    localStorage.removeItem(KEY_PIN);localStorage.removeItem(KEY_FACE);
+    updatePinBtns();alert('PIN 已移除（面容解锁一并关闭）');
+  }
+  else alert('PIN 不对');
+};
+$('#btnFaceSetup').onclick=setupFace;
+$('#btnFace').onclick=tryUnlockFace;
+render();
+renderBk();
+updatePinBtns();
+if(getPinRec())doLock();
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
