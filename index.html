@@ -680,7 +680,7 @@ $('#lockForm').addEventListener('submit',async e=>{
 });
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden)hiddenAt=Date.now();
-  else if(hiddenAt&&Date.now()-hiddenAt>60000)doLock();
+  else if(hiddenAt)doLock();
 });
 function updateFaceBtns(){
   const has=!!getPinRec(),face=!!getFaceRec(),ok=faceOK();
