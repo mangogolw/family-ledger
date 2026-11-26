@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>家庭积蓄小本</title>
+<title>共商大计</title>
 <meta name="description" content="本地优先的家庭积蓄余额快照小本：数据只存在本机浏览器，支持导出备份。">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f0e6">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#211d18">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="共商大计">
+<link rel="apple-touch-icon" href="icon-180.png">
 <style>
 :root{
   --bg:oklch(95.5% 0.012 85);
@@ -126,6 +128,12 @@ main{max-width:560px;margin:0 auto;padding:14px 16px 0}
 .ledger td.c-date{text-align:left}
 .ledger td.c-total{font-weight:700;color:var(--accent);font-size:15px}
 .tnote{font-size:12px;font-weight:400;color:var(--muted);white-space:normal;max-width:240px;word-break:break-all}
+.tdelta{font-size:11px;font-weight:400;margin-left:6px}
+.tdelta.pos{color:var(--ok)}
+.tdelta.neg{color:var(--danger)}
+.sum .dsub{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px}
+.sum .dsub.pos{color:var(--ok)}
+.sum .dsub.neg{color:var(--danger)}
 .empty{
   margin-top:24px;padding:32px 16px;text-align:center;color:var(--muted);
   border:1.5px dashed var(--line);border-radius:var(--radius);font-size:14px;
@@ -184,8 +192,8 @@ dialog small{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
 </head>
 <body>
 <header>
-  <span class="logo" aria-hidden="true">家</span>
-  <h1>家庭积蓄小本<small>本地版 · 数据不出手机</small></h1>
+  <span class="logo" aria-hidden="true">计</span>
+  <h1>共商大计<small>数据不出手机</small></h1>
   <span class="grow"></span>
   <button id="btnData" class="btn btn-sm">数据</button>
 </header>
@@ -211,7 +219,7 @@ dialog small{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
 <button id="fab" class="fab" aria-label="添加快照">＋</button>
 
 <div id="lock" class="lock" hidden>
-  <span class="logo" aria-hidden="true">家</span>
+  <span class="logo" aria-hidden="true">计</span>
   <button id="btnFace" class="btn primary" hidden>扫脸解锁 Face ID</button>
   <form id="lockForm">
     <input id="lockPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off">
@@ -286,35 +294,37 @@ function yearGroups(items){
     byYear.get(y).push(it);
   }
   for(const l of byYear.values())l.sort(byDateAsc);
-  const lastTotalOf=year=>{
-    for(let i=items.length-1;i>=0;i--){
-      if(parseY(items[i].date)===year&&items[i].total!=null)return items[i].total;
-    }
-    return null;
-  };
   const lastTotalIn=list=>{for(let i=list.length-1;i>=0;i--){if(list[i].total!=null)return list[i].total}return null};
   const firstTotalIn=list=>{for(const it of list){if(it.total!=null)return it.total}return null};
   const years=[...byYear.keys()].sort((a,b)=>b-a);
+  const earliest=years[years.length-1];
   return years.map(y=>{
     const list=byYear.get(y);
-    const prev=lastTotalOf(y-1);
+    const base=firstTotalIn(list);
     const lastT=lastTotalIn(list);
-    const base=prev!=null?prev:firstTotalIn(list);
     const inc=(lastT!=null&&base!=null)?r2(lastT-base):null;
-    return {year:y,list,count:list.length,inc,base,first:prev==null,firstTotal:firstTotalIn(list)};
+    return {year:y,list,count:list.length,inc,base,first:y===earliest,firstTotal:base};
   });
-}
-function prevYearTotal(items,year){
-  for(let i=items.length-1;i>=0;i--){
-    const y=parseY(items[i].date);
-    if(y===year-1&&items[i].total!=null)return items[i].total;
-    if(y<year-1)return null;
-  }
-  return null;
 }
 const deltaPart=g=>`存了 ${g.inc==null?'—':deltaStr(g.inc)}万${(g.first&&g.firstTotal!=null)?`（期初${trimNum(g.firstTotal)}万，含以前积蓄）`:''}`;
 const yearLabel=g=>`${g.year}年 · ${deltaPart(g)}`;
 const seedCollapsed=yearsDesc=>yearsDesc.slice(1);
+function deltasFor(items){
+  const list=sortItems(items);
+  const out={};
+  let ph=null,pw=null,pt=null;
+  for(const it of list){
+    const d={husD:null,wifeD:null,totalD:null};
+    if(it.hus!=null&&ph!=null)d.husD=r2(it.hus-ph);
+    if(it.wife!=null&&pw!=null)d.wifeD=r2(it.wife-pw);
+    if(it.total!=null&&pt!=null)d.totalD=r2(it.total-pt);
+    out[it.id]=d;
+    if(it.hus!=null)ph=it.hus;
+    if(it.wife!=null)pw=it.wife;
+    if(it.total!=null)pt=it.total;
+  }
+  return out;
+}
 function normalizeItems(raw){
   if(!Array.isArray(raw))throw new Error('文件结构不对，需要 {"items":[…]}');
   const num=(v,k)=>{const n=Number(v);if(!Number.isFinite(n))throw new Error(`${k}不是有效数字`);return n};
@@ -345,6 +355,14 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const pad=n=>String(n).padStart(2,'0');
 const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const dspan=d=>d==null?'':`<span class="tdelta ${d>=0?'pos':'neg'}">${d>=0?'+':'-'}${trimNum(Math.abs(d))}</span>`;
+const setD=(sel,d)=>{
+  const el=$(sel);
+  if(d==null){el.textContent='';el.classList.remove('pos','neg');return}
+  el.textContent=`较上次 ${deltaStr(d)}万`;
+  el.classList.toggle('pos',d>=0);
+  el.classList.toggle('neg',d<0);
+};
 
 function load(){
   try{
@@ -375,20 +393,22 @@ function render(){
   wrap.textContent='';
   const last=items[items.length-1]||null;
   const sDelta=$('#sDelta');
+  const dmap=deltasFor(items);
+  const groups=yearGroups(items);
   if(last){
     const y=parseY(last.date);
-    let lastT=null;
-    for(let i=items.length-1;i>=0;i--){if(items[i].total!=null){lastT=items[i].total;break}}
+    let lastRec=null;
+    for(let i=items.length-1;i>=0;i--){if(items[i].total!=null){lastRec=items[i];break}}
+    const lastT=lastRec?lastRec.total:null;
     $('#sYear').textContent=`${y}年`;
     $('#sTotal').textContent=lastT!=null?trimNum(lastT):'—';
     $('#sHus').textContent=last.hus==null?'—':trimNum(last.hus);
     $('#sWife').textContent=last.wife==null?'—':trimNum(last.wife);
-    const prev=prevYearTotal(items,y);
-    if(prev!=null&&lastT!=null){
-      const d=lastT-prev;
-      sDelta.textContent=`${deltaStr(d)} 万`;
-      sDelta.classList.toggle('pos',d>=0);
-      sDelta.classList.toggle('neg',d<0);
+    const g=groups.find(g=>g.year===y);
+    if(g&&g.inc!=null){
+      sDelta.textContent=`${deltaStr(g.inc)} 万`;
+      sDelta.classList.toggle('pos',g.inc>=0);
+      sDelta.classList.toggle('neg',g.inc<0);
     }else{
       sDelta.textContent='—';
       sDelta.classList.remove('pos','neg');
@@ -406,7 +426,6 @@ function render(){
 
   if(!items.length){$('#empty').hidden=false;return}
   $('#empty').hidden=true;
-  const groups=yearGroups(items);
   if(!localStorage.getItem(KEY_UI)){
     collapsedYears=new Set(seedCollapsed(groups.map(g=>g.year)));
     saveCollapsed();
@@ -419,13 +438,16 @@ function render(){
     if(!collapsed){
       const div=document.createElement('div');
       div.className='tblwrap';
-      const rows=g.list.map(it=>`
+      const rows=g.list.map(it=>{
+        const d=dmap[it.id]||{husD:null,wifeD:null,totalD:null};
+        return `
         <tr class="trow" tabindex="0" data-id="${esc(it.id)}">
           <td class="c-date">${esc(it.date)}${it.note?`<div class="tnote">${esc(it.note)}</div>`:''}</td>
-          <td>${it.hus==null?'—':trimNum(it.hus)}</td>
-          <td>${it.wife==null?'—':trimNum(it.wife)}</td>
-          <td class="c-total">${it.total==null?'—':trimNum(it.total)}</td>
-        </tr>`).join('');
+          <td>${it.hus==null?'—':trimNum(it.hus)+dspan(d.husD)}</td>
+          <td>${it.wife==null?'—':trimNum(it.wife)+dspan(d.wifeD)}</td>
+          <td class="c-total">${it.total==null?'—':trimNum(it.total)+dspan(d.totalD)}</td>
+        </tr>`;
+      }).join('');
       div.innerHTML=`<table class="ledger"><thead><tr><th>日期</th><th>xz</th><th>lw</th><th>合计</th></tr></thead><tbody>${rows}</tbody></table>`;
       sec.appendChild(div);
     }
