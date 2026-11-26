@@ -132,13 +132,9 @@ main{max-width:560px;margin:0 auto;padding:14px 16px 0}
 }
 .bkbar{
   display:flex;align-items:center;gap:8px;justify-content:space-between;
-  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
-  padding:8px 8px 8px 14px;margin-bottom:14px;font-size:12.5px;color:var(--muted);
+  padding:0 2px 10px;margin-bottom:2px;font-size:12px;color:var(--muted);
 }
-.bkbar.stale{
-  background:var(--warn-soft);color:var(--warn);
-  border-color:color-mix(in oklab,var(--warn) 35%,var(--line));
-}
+.bkbar.stale{color:var(--warn)}
 .lock{
   position:fixed;inset:0;z-index:100;background:var(--bg);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
