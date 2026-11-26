@@ -206,8 +206,8 @@ dialog small{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
   <section class="summary" aria-label="汇总">
     <div class="sum-grid">
       <div class="sum third"><label>家庭总积蓄（最新）</label><div class="v xl"><span id="sTotal">0</span><small> 万元</small></div></div>
-      <div class="sum"><label>老公余额</label><div class="v m"><span id="sHus">—</span><small> 万</small></div></div>
-      <div class="sum"><label>我的余额</label><div class="v m"><span id="sWife">—</span><small> 万</small></div></div>
+      <div class="sum"><label>xz余额</label><div class="v m"><span id="sHus">—</span><small> 万</small></div></div>
+      <div class="sum"><label>lw余额</label><div class="v m"><span id="sWife">—</span><small> 万</small></div></div>
       <div class="sum third div"><label>本年增量（<span id="sYear">—</span>）</label><div class="v m"><span id="sDelta">—</span></div></div>
     </div>
     <p class="sum-foot" id="sFoot"></p>
@@ -249,8 +249,8 @@ dialog small{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
   <form id="f" novalidate>
     <h2 id="formTitle">添加快照</h2>
     <label><span>日期 *</span><input id="fDate" type="date"></label>
-    <label><span>老公余额（万元）</span><input id="fHus" type="number" step="0.01" inputmode="decimal" placeholder="留空＝仅记合计"></label>
-    <label><span>我的余额（万元）</span><input id="fWife" type="number" step="0.01" inputmode="decimal" placeholder="留空＝仅记合计"></label>
+    <label><span>xz余额（万元）</span><input id="fHus" type="number" step="0.01" inputmode="decimal" placeholder="留空＝仅记合计"></label>
+    <label><span>lw余额（万元）</span><input id="fWife" type="number" step="0.01" inputmode="decimal" placeholder="留空＝仅记合计"></label>
     <label><span>合计（万元）*</span><input id="fTotal" type="number" step="0.01" inputmode="decimal">
       <small>填了两人金额会自动算出合计，仍可手动修改；每条记录是截至当天的余额快照</small>
     </label>
@@ -429,7 +429,7 @@ function render(){
           <td>${it.wife==null?'—':trimNum(it.wife)}</td>
           <td class="c-total">${trimNum(it.total)}</td>
         </tr>`).join('');
-      div.innerHTML=`<table class="ledger"><thead><tr><th>日期</th><th>老公</th><th>我</th><th>合计</th></tr></thead><tbody>${rows}</tbody></table>`;
+      div.innerHTML=`<table class="ledger"><thead><tr><th>日期</th><th>xz</th><th>lw</th><th>合计</th></tr></thead><tbody>${rows}</tbody></table>`;
       sec.appendChild(div);
     }
     wrap.appendChild(sec);
@@ -473,8 +473,8 @@ $('#f').addEventListener('submit',e=>{
   if(!date){alert('请选择日期');return}
   if(!Number.isFinite(total)){alert('请填写合计金额（万元）');return}
   let hus=null,wife=null;
-  if(husRaw!==''){hus=Number(husRaw);if(!Number.isFinite(hus)){alert('老公金额不正确');return}}
-  if(wifeRaw!==''){wife=Number(wifeRaw);if(!Number.isFinite(wife)){alert('我的金额不正确');return}}
+  if(husRaw!==''){hus=Number(husRaw);if(!Number.isFinite(hus)){alert('xz金额不正确');return}}
+  if(wifeRaw!==''){wife=Number(wifeRaw);if(!Number.isFinite(wife)){alert('lw金额不正确');return}}
   const note=$('#fNote').value.trim();
   if(editing){
     state.items=state.items.map(i=>i.id===editing?{...i,date,hus,wife,total,note}:i);
@@ -528,7 +528,7 @@ async function exportJson(){
 $('#btnExportJson').onclick=exportJson;
 $('#bkNow').onclick=exportJson;
 $('#btnExportCsv').onclick=()=>{
-  const head='日期,老公(万),我(万),合计(万),备注';
+  const head='日期,xz(万),lw(万),合计(万),备注';
   const rows=sortItems(state.items).map(i=>[
     i.date,i.hus==null?'':i.hus,i.wife==null?'':i.wife,i.total,i.note||''
   ].map(csvCell).join(','));
