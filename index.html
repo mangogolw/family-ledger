@@ -239,7 +239,7 @@ dialog small{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
     <label><span>日期 *</span><input id="fDate" type="date"></label>
     <label><span>xz余额（万元）</span><input id="fHus" type="number" step="0.01" inputmode="decimal" placeholder="留空＝仅记合计"></label>
     <label><span>lw余额（万元）</span><input id="fWife" type="number" step="0.01" inputmode="decimal" placeholder="留空＝仅记合计"></label>
-    <label><span>合计（万元）*</span><input id="fTotal" type="number" step="0.01" inputmode="decimal">
+    <label><span>合计（万元）</span><input id="fTotal" type="number" step="0.01" inputmode="decimal" placeholder="只知道一个人的数，可以留空">
       <small>填了两人金额会自动算出合计，仍可手动修改；每条记录是截至当天的余额快照</small>
     </label>
     <label><span>备注</span><input id="fNote" maxlength="100" placeholder="选填，如：大额支出 / 互相转账"></label>
@@ -286,29 +286,33 @@ function yearGroups(items){
     byYear.get(y).push(it);
   }
   for(const l of byYear.values())l.sort(byDateAsc);
-  const lastOf=year=>{
+  const lastTotalOf=year=>{
     for(let i=items.length-1;i>=0;i--){
-      if(parseY(items[i].date)===year)return items[i];
+      if(parseY(items[i].date)===year&&items[i].total!=null)return items[i].total;
     }
     return null;
   };
+  const lastTotalIn=list=>{for(let i=list.length-1;i>=0;i--){if(list[i].total!=null)return list[i].total}return null};
+  const firstTotalIn=list=>{for(const it of list){if(it.total!=null)return it.total}return null};
   const years=[...byYear.keys()].sort((a,b)=>b-a);
   return years.map(y=>{
     const list=byYear.get(y);
-    const prev=lastOf(y-1);
-    const base=prev?prev.total:list[0].total;
-    return {year:y,list,count:list.length,inc:r2(list[list.length-1].total-base),base,first:!prev,firstTotal:list[0].total};
+    const prev=lastTotalOf(y-1);
+    const lastT=lastTotalIn(list);
+    const base=prev!=null?prev:firstTotalIn(list);
+    const inc=(lastT!=null&&base!=null)?r2(lastT-base):null;
+    return {year:y,list,count:list.length,inc,base,first:prev==null,firstTotal:firstTotalIn(list)};
   });
 }
 function prevYearTotal(items,year){
   for(let i=items.length-1;i>=0;i--){
     const y=parseY(items[i].date);
-    if(y===year-1)return items[i].total;
+    if(y===year-1&&items[i].total!=null)return items[i].total;
     if(y<year-1)return null;
   }
   return null;
 }
-const deltaPart=g=>`存了 ${deltaStr(g.inc)}万${g.first?`（期初${trimNum(g.firstTotal)}万，含以前积蓄）`:''}`;
+const deltaPart=g=>`存了 ${g.inc==null?'—':deltaStr(g.inc)}万${(g.first&&g.firstTotal!=null)?`（期初${trimNum(g.firstTotal)}万，含以前积蓄）`:''}`;
 const yearLabel=g=>`${g.year}年 · ${deltaPart(g)}`;
 const seedCollapsed=yearsDesc=>yearsDesc.slice(1);
 function normalizeItems(raw){
@@ -317,13 +321,16 @@ function normalizeItems(raw){
   const opt=v=>(v==null||v==='')?null:num(v,'金额');
   return raw.map((it,k)=>{
     if(!it||typeof it.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(it.date))throw new Error(`第 ${k+1} 条缺少合法 date（YYYY-MM-DD）`);
-    if(it.total==null||it.total==='')throw new Error(`第 ${k+1} 条缺少 total`);
+    const hus=opt(it.hus),wife=opt(it.wife);
+    let total=opt(it.total);
+    if(total==null&&hus!=null&&wife!=null)total=r2(hus+wife);
+    if(total==null&&hus==null&&wife==null)throw new Error(`第 ${k+1} 条 xz/lw/合计 至少要有一个数字`);
     return {
       id:String(it.id||('imp-'+Date.now().toString(36)+Math.random().toString(36).slice(2,7))),
       date:it.date,
-      hus:opt(it.hus),
-      wife:opt(it.wife),
-      total:num(it.total,'total'),
+      hus,
+      wife,
+      total,
       note:String(it.note||'')
     };
   }).sort(byDateAsc);
@@ -370,13 +377,15 @@ function render(){
   const sDelta=$('#sDelta');
   if(last){
     const y=parseY(last.date);
+    let lastT=null;
+    for(let i=items.length-1;i>=0;i--){if(items[i].total!=null){lastT=items[i].total;break}}
     $('#sYear').textContent=`${y}年`;
-    $('#sTotal').textContent=trimNum(last.total);
+    $('#sTotal').textContent=lastT!=null?trimNum(lastT):'—';
     $('#sHus').textContent=last.hus==null?'—':trimNum(last.hus);
     $('#sWife').textContent=last.wife==null?'—':trimNum(last.wife);
     const prev=prevYearTotal(items,y);
-    if(prev!=null){
-      const d=last.total-prev;
+    if(prev!=null&&lastT!=null){
+      const d=lastT-prev;
       sDelta.textContent=`${deltaStr(d)} 万`;
       sDelta.classList.toggle('pos',d>=0);
       sDelta.classList.toggle('neg',d<0);
@@ -415,7 +424,7 @@ function render(){
           <td class="c-date">${esc(it.date)}${it.note?`<div class="tnote">${esc(it.note)}</div>`:''}</td>
           <td>${it.hus==null?'—':trimNum(it.hus)}</td>
           <td>${it.wife==null?'—':trimNum(it.wife)}</td>
-          <td class="c-total">${trimNum(it.total)}</td>
+          <td class="c-total">${it.total==null?'—':trimNum(it.total)}</td>
         </tr>`).join('');
       div.innerHTML=`<table class="ledger"><thead><tr><th>日期</th><th>xz</th><th>lw</th><th>合计</th></tr></thead><tbody>${rows}</tbody></table>`;
       sec.appendChild(div);
@@ -456,13 +465,14 @@ $('#fDelete').onclick=()=>{
 $('#f').addEventListener('submit',e=>{
   e.preventDefault();
   const date=$('#fDate').value;
-  const total=Number($('#fTotal').value);
-  const husRaw=$('#fHus').value.trim(),wifeRaw=$('#fWife').value.trim();
+  const husRaw=$('#fHus').value.trim(),wifeRaw=$('#fWife').value.trim(),totalRaw=$('#fTotal').value.trim();
   if(!date){alert('请选择日期');return}
-  if(!Number.isFinite(total)){alert('请填写合计金额（万元）');return}
-  let hus=null,wife=null;
+  if(husRaw===''&&wifeRaw===''&&totalRaw===''){alert('xz / lw / 合计至少填一个');return}
+  let hus=null,wife=null,total=null;
   if(husRaw!==''){hus=Number(husRaw);if(!Number.isFinite(hus)){alert('xz金额不正确');return}}
   if(wifeRaw!==''){wife=Number(wifeRaw);if(!Number.isFinite(wife)){alert('lw金额不正确');return}}
+  if(totalRaw!==''){total=Number(totalRaw);if(!Number.isFinite(total)){alert('合计金额不正确');return}}
+  if(total==null&&hus!=null&&wife!=null)total=r2(hus+wife);
   const note=$('#fNote').value.trim();
   if(editing){
     state.items=state.items.map(i=>i.id===editing?{...i,date,hus,wife,total,note}:i);
