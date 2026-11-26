@@ -1,6 +1,6 @@
 // 可选：仅在 https 托管时生效，让「添加到主屏幕」后离线也能打开。
 // 页面数据本身存 localStorage，与 SW 无关。
-const CACHE = 'family-ledger-v5';
+const CACHE = 'family-ledger-v6';
 const ASSETS = ['./', './index.html'];
 
 self.addEventListener('install', e => {
